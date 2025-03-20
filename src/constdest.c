@@ -79,10 +79,26 @@ lispvalue* lispvalue_function(lispbuiltin function)
 {
     lispvalue* lv = malloc(sizeof(lispvalue));
     lv->type = LISPVALUE_FUNCTION;
-    lv->function = function;
+    lv->builtin = function;
     
     lv->cell_count = -1;
     lv->cells = NULL;
+
+    return lv;
+}
+
+lispvalue* lispvalue_lambda(lispvalue* formals, lispvalue* body)
+{
+    lispvalue* lv = malloc(sizeof(lispvalue));
+    lv->type = LISPVALUE_FUNCTION;
+
+    // setting builtin to NULL means this is a user-defined function
+    lv->builtin = NULL;
+
+    lv->env = lispenv_new();
+    
+    lv->formals = formals;
+    lv->body = body;
 
     return lv;
 }
@@ -104,7 +120,17 @@ lispvalue* lispvalue_copy(lispvalue* lv)
     switch (lv->type)
     {
         case LISPVALUE_NUMBER:      x->number = lv->number; break;
-        case LISPVALUE_FUNCTION:    x->function = lv->function; break;
+        case LISPVALUE_FUNCTION:    
+            if (!lv->builtin) x->builtin = lv->builtin;
+            
+            else
+            {
+                x->env = lv->env;
+                x->formals = lv->formals;
+                x->body = lv->body;    
+            }
+
+            break;
 
         case LISPVALUE_ERROR:
             x->error = malloc(strlen(lv->error) + 1);
@@ -133,8 +159,14 @@ void lispvalue_delete(lispvalue* lv)
     switch (lv->type)
     {
         // do nothing special for the number and function type
-        case LISPVALUE_NUMBER: 
+        case LISPVALUE_NUMBER: break;
         case LISPVALUE_FUNCTION:
+            if (!lv->builtin)
+            {
+                lispenv_delete(lv->env);
+                lispvalue_delete(lv->formals);
+                lispvalue_delete(lv->body);
+            }
             break;
 
         // free string data for error and symbol type
@@ -181,11 +213,30 @@ lispvalue* lispvalue_take(lispvalue* lv, size_t i)
 lispenv* lispenv_new()
 {
     lispenv* le = malloc(sizeof(lispenv));
+    le->parent = NULL;
     le->symbol_count = 0;
     le->symbols = NULL;
     le->values = NULL;
 
     return le;
+}
+
+lispenv* lispenv_copy(lispenv* le)
+{
+    lispenv* n = malloc(sizeof(lispenv));
+    n->parent = le->parent;
+    n->symbol_count = le->symbol_count;
+    n->symbols = malloc(sizeof(char*) * le->symbol_count);
+    n->values = malloc(sizeof(lispvalue*) * le->symbol_count);
+
+    for (int i = 0; i < le->symbol_count; i++)
+    {
+        n->symbols[i] = malloc(strlen(le->symbols[i]) + 1);
+        strcpy(n->symbols[i], le->symbols[i]);
+        n->values[i] = lispvalue_copy(le->values[i]);
+    }
+
+    return n;
 }
 
 void lispenv_delete(lispenv* le)
@@ -229,9 +280,18 @@ void lispenv_put(lispenv* le, char* symbol, lispvalue* lv)
 lispvalue* lispenv_get(lispenv* le, char* symbol)
 {
     for (int i = 0; i < le->symbol_count; i++)
-    if (!strcmp(le->symbols[i], symbol)) return lispvalue_copy(le->values[i]);
+    if (!strcmp(le->symbols[i], symbol)) 
+    return lispvalue_copy(le->values[i]);
 
-    return lispvalue_error("unbound symbol \"%s\"", symbol);
+    if (le->parent) return lispenv_get(le->parent, symbol);
+    else return lispvalue_error("unbound symbol \"%s\"", symbol);
+}
+
+void lispenv_define(lispenv* le, char* symbol, lispvalue* lv)
+{
+    while (le->parent) le = le->parent;
+
+    return lispenv_put(le, symbol, lv);
 }
 
 void lispenv_add_builtin(lispenv* le, char* name, lispbuiltin function)
@@ -253,6 +313,7 @@ void lispenv_add_builtins(lispenv* le)
     lispenv_add_builtin(le, JOIN_STR, builtin_join);
     lispenv_add_builtin(le, REVERSE_STR, builtin_reverse);
     lispenv_add_builtin(le, EVAL_STR, builtin_eval);
+    lispenv_add_builtin(le, LAMBDA_STR, builtin_lambda);
 
     // mathematical functions
     lispenv_add_builtin(le, ADD_SYMBOL_STR, builtin_add);

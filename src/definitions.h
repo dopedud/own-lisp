@@ -23,6 +23,7 @@
 #define JOIN_STR            "join"
 #define REVERSE_STR         "reverse"
 #define EVAL_STR            "eval"
+#define LAMBDA_STR          "\\"
 
 #define ADD_SYMBOL_STR "+"
 #define SUB_SYMBOL_STR "-"
@@ -56,6 +57,7 @@ typedef lispvalue*(*lispbuiltin)(lispenv*, lispvalue*);
 // lisp environment struct to store declared variables and builtin and declared functions
 typedef struct lispenv
 {
+    lispenv* parent;
     int64_t symbol_count;
     char** symbols;
     lispvalue** values;
@@ -72,7 +74,14 @@ typedef struct lispvalue
         int64_t number;
         char* error;
         char* symbol;
-        lispbuiltin function;
+
+        struct
+        {
+            lispbuiltin builtin;
+            lispenv* env;
+            lispvalue* formals;
+            lispvalue* body;
+        };
     };
 
     int64_t cell_count;

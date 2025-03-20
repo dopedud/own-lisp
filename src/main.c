@@ -14,7 +14,6 @@
 #include "printer.h"
 #include "reader.h"
 #include "evaluator.h"
-#include "environment.h"
 
 // function to print the outcome of the parsed program
 void print(int outcome, mpc_result_t* result, lispenv* le);

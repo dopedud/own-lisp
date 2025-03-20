@@ -13,7 +13,16 @@ void lispvalue_print(lispvalue* lv)
         case LISPVALUE_SYMBOL:      printf("%s", lv->symbol); break;
         case LISPVALUE_SEXPRESSION: lispvalue_print_expression(lv, '(', ')'); break;
         case LISPVALUE_QEXPRESSION: lispvalue_print_expression(lv, '{', '}'); break;
-        case LISPVALUE_FUNCTION:    printf("<function>"); break;
+        case LISPVALUE_FUNCTION:    
+            if(lv->builtin) printf("<builtin>");
+            
+            else
+            {
+                printf("(\\ "); lispvalue_print(lv->formals);
+                putchar(' '); lispvalue_print(lv->body); putchar(')');
+            }
+             
+            break;
     }
 }
 

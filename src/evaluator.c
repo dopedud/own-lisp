@@ -13,6 +13,24 @@
         return error;                                               \
     }                                                               \
 
+lispvalue* lispvalue_call(lispenv* le, lispvalue* function, lispvalue* lv)
+{
+    if (function->builtin) return function->builtin(le, lv);
+
+    // assign each argument to each formal in order
+    for (int i = 0; i < lv->cell_count; i++)
+    lispenv_put(le, function->formals->cells[i]->symbol, lv->cells[i]);
+
+    lispvalue_delete(lv);
+
+    function->env->parent = le;
+
+    return builtin_eval(function->env, 
+        lispvalue_add(lispvalue_sexpression(), 
+        lispvalue_copy(function->body)));
+}
+
+
 lispvalue* lispvalue_eval(lispenv* le, lispvalue* lv)
 {
     // evaluate symbols, do symbol lookup on the environment
@@ -55,7 +73,7 @@ lispvalue* lispvalue_eval_sexpression(lispenv* le, lispvalue* lv)
     }
 
     // call builtin with operator
-    lispvalue* result = fn->function(le, lv);
+    lispvalue* result = fn->builtin(le, lv);
     lispvalue_delete(fn);
     return result;
 }
@@ -221,6 +239,40 @@ lispvalue* builtin_eval(lispenv* le, lispvalue* lv)
     return lispvalue_eval(le, x);
 }
 
+lispvalue* builtin_lambda(lispenv* le, lispvalue* lv)
+{
+    LISP_ASSERT(lv, lv->cells[0]->cell_count != 0,
+        "user-defined function passed in no arguments")
+
+    else LISP_ASSERT(lv, lv->cells[0]->cell_count == 2,
+        "user-defined function passed in too little/too many arguments")
+
+    else LISP_ASSERT(lv, lv->cells[0]->type == LISPVALUE_QEXPRESSION,
+        "user-defined function passed in an incorrect type for argument 0: "
+        "expected %s, got %s",
+        lv_type_to_name(LISPVALUE_QEXPRESSION), lv_type_to_name(lv->cells[0]->type)
+    )
+
+    else LISP_ASSERT(lv, lv->cells[1]->type == LISPVALUE_QEXPRESSION,
+        "user-defined function passed in an incorrect type for argument 1: "
+        "expected %s, got %s",
+        lv_type_to_name(LISPVALUE_QEXPRESSION), lv_type_to_name(lv->cells[0]->type)
+    )
+
+    // check first q_expression contain only symbols
+    for (int i = 0; i < lv->cells[0]->cell_count; i++)
+    LISP_ASSERT(lv, lv->cells[0]->cells[i]->type == LISPVALUE_SYMBOL,
+        "cannot operate formals on a non-symbol: "
+        "expected %s, got %s",
+        lv_type_to_name(LISPVALUE_SYMBOL), lv_type_to_name(lv->cells[0]->cells[i]->type)
+    )
+
+    lispvalue* formals = lispvalue_pop(lv, 0);
+    lispvalue* body = lispvalue_take(lv, 0);
+
+    return lispvalue_lambda(formals, body);
+}
+
 lispvalue* lispvalue_join(lispvalue* lv, lispvalue* new_lv)
 {
     while (new_lv->cell_count) lv = lispvalue_add(lv, lispvalue_pop(new_lv, 0));
@@ -278,9 +330,4 @@ lispvalue* builtin_operator(lispenv* le, lispvalue* lv, char* op)
     lispvalue_delete(lv);
     
     return x;
-}
-
-lispvalue* builtin_environment(lispenv* le, lispvalue* lv)
-{
-    
 }
