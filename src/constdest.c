@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+#include "builtins.h"
 #include "evaluator.h"
 
 #include "constdest.h"
@@ -24,6 +25,9 @@ lispvalue* lispvalue_error(char* format, ...)
 
     va_end(va);
 
+    lv->cell_count = -1;
+    lv->cells = NULL;
+
     return lv;
 }
 
@@ -31,6 +35,7 @@ lispvalue* lispvalue_number(int64_t x)
 {
     lispvalue* lv = malloc(sizeof(lispvalue));
     lv->type = LISPVALUE_NUMBER;
+
     lv->number = x;
 
     lv->cell_count = -1;
@@ -59,6 +64,7 @@ lispvalue* lispvalue_sexpression()
 {
     lispvalue* lv = malloc(sizeof(lispvalue));
     lv->type = LISPVALUE_SEXPRESSION;
+
     lv->cell_count = 0;
     lv->cells = NULL;
 
@@ -69,6 +75,7 @@ lispvalue* lispvalue_qexpression()
 {
     lispvalue* lv = malloc(sizeof(lispvalue));
     lv->type = LISPVALUE_QEXPRESSION;
+
     lv->cell_count = 0;
     lv->cells = NULL;
 
@@ -79,6 +86,7 @@ lispvalue* lispvalue_function(lispbuiltin function)
 {
     lispvalue* lv = malloc(sizeof(lispvalue));
     lv->type = LISPVALUE_FUNCTION;
+
     lv->builtin = function;
     
     lv->cell_count = -1;
@@ -100,6 +108,9 @@ lispvalue* lispvalue_lambda(lispvalue* formals, lispvalue* body)
     lv->formals = formals;
     lv->body = body;
 
+    lv->cell_count = -1;
+    lv->cells = NULL;
+
     return lv;
 }
 
@@ -119,9 +130,9 @@ lispvalue* lispvalue_copy(lispvalue* lv)
 
     switch (lv->type)
     {
-        case LISPVALUE_NUMBER:      x->number = lv->number; break;
+        case LISPVALUE_NUMBER: x->number = lv->number; break;
         case LISPVALUE_FUNCTION:    
-            if (!lv->builtin) x->builtin = lv->builtin;
+            if (lv->builtin) x->builtin = lv->builtin;
             
             else
             {
@@ -158,8 +169,10 @@ void lispvalue_delete(lispvalue* lv)
 {
     switch (lv->type)
     {
-        // do nothing special for the number and function type
+        // do nothing special for the number and builtin function type
         case LISPVALUE_NUMBER: break;
+
+        // delete function environment, formal arguments, and function body for user-defined functions
         case LISPVALUE_FUNCTION:
             if (!lv->builtin)
             {
@@ -296,10 +309,9 @@ void lispenv_define(lispenv* le, char* symbol, lispvalue* lv)
 
 void lispenv_add_builtin(lispenv* le, char* name, lispbuiltin function)
 {
-    lispvalue* symbol = lispvalue_symbol(name);
     lispvalue* value = lispvalue_function(function);
-    lispenv_put(le, symbol->symbol, value);
-    lispvalue_delete(symbol); lispvalue_delete(value);
+    lispenv_put(le, name, value);
+    lispvalue_delete(value);
 }
 
 void lispenv_add_builtins(lispenv* le)

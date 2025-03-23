@@ -1,8 +1,0 @@
-cc -std=c11 -Wall (name of program(s)) -o (name of executable)
-gcc -std=c11 -Wall (name of program(s)) -o (name of executable)
-
-common use:
-
-gcc -g -std=c11 -Wall mpc/mpc.c definitions.c constdest.c printer.c reader.c evaluator.c main.c -o lispy
-
-gcc -g -std=c11 -Wall main.c -o main
