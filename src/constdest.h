@@ -28,10 +28,10 @@ lispvalue* lispvalue_copy(lispvalue* lv);
 void lispvalue_delete(lispvalue* lv);
 
 // function to "pop" a child element of a lispvalue given index "i"
-lispvalue* lispvalue_pop(lispvalue* lv, size_t i);
+lispvalue* lispvalue_pop(lispvalue* lv, int i);
 
 // like "lispvalue_pop" but deletes the child element after popping
-lispvalue* lispvalue_take(lispvalue* lv, size_t i);
+lispvalue* lispvalue_take(lispvalue* lv, int i);
 
 // /////////////////////////////////////////////////
 // // FUNCTION DECLERATIONS FOR LISP ENVIRONMENTS //

@@ -88,6 +88,10 @@ lispvalue* lispvalue_function(lispbuiltin function)
     lv->type = LISPVALUE_FUNCTION;
 
     lv->builtin = function;
+
+    lv->env = NULL;
+    lv->formals = NULL;
+    lv->body = NULL;
     
     lv->cell_count = -1;
     lv->cells = NULL;
@@ -104,7 +108,6 @@ lispvalue* lispvalue_lambda(lispvalue* formals, lispvalue* body)
     lv->builtin = NULL;
 
     lv->env = lispenv_new();
-    
     lv->formals = formals;
     lv->body = body;
 
@@ -136,9 +139,10 @@ lispvalue* lispvalue_copy(lispvalue* lv)
             
             else
             {
-                x->env = lv->env;
-                x->formals = lv->formals;
-                x->body = lv->body;    
+                x->builtin = NULL;
+                x->env = lispenv_copy(lv->env);
+                x->formals = lispvalue_copy(lv->formals);
+                x->body = lispvalue_copy(lv->body);
             }
 
             break;
@@ -198,7 +202,7 @@ void lispvalue_delete(lispvalue* lv)
     free(lv);
 }
 
-lispvalue* lispvalue_pop(lispvalue* lv, size_t i)
+lispvalue* lispvalue_pop(lispvalue* lv, int i)
 {
     // get lispvalue at index "i"
     lispvalue* x = lv->cells[i];
@@ -216,7 +220,7 @@ lispvalue* lispvalue_pop(lispvalue* lv, size_t i)
     return x;
 }
 
-lispvalue* lispvalue_take(lispvalue* lv, size_t i)
+lispvalue* lispvalue_take(lispvalue* lv, int i)
 {
     lispvalue* x = lispvalue_pop(lv, i);
     lispvalue_delete(lv);

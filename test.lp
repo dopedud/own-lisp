@@ -1,1 +1,2 @@
-(\ {x y} {+ x y}) 2 3
+define {adder} (\ {x y} {+ x y})
+adder 10 20

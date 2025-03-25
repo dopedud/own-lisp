@@ -39,7 +39,7 @@ lispvalue* builtin_define(lispenv* le, lispvalue* lv)
     )
 
     for (int i = 0; i < symbols->cell_count; i++)
-    lispenv_put(le, symbols->cells[i]->symbol, lv->cells[i + 1]);
+    lispenv_define(le, symbols->cells[i]->symbol, lv->cells[i + 1]);
 
     lispvalue_delete(lv);
     return lispvalue_sexpression();
@@ -195,7 +195,7 @@ lispvalue* builtin_lambda(lispenv* le, lispvalue* lv)
         lv_type_to_name(LISPVALUE_QEXPRESSION), lv_type_to_name(lv->cells[0]->type)
     )
 
-    // check first q_expression contain only symbols
+    // check the first q_expression contains only symbols
     for (int i = 0; i < lv->cells[0]->cell_count; i++)
     LISP_ASSERT(lv, lv->cells[0]->cells[i]->type == LISPVALUE_SYMBOL,
         "cannot operate formals on a non-symbol: "
@@ -204,7 +204,9 @@ lispvalue* builtin_lambda(lispenv* le, lispvalue* lv)
     )
 
     lispvalue* formals = lispvalue_pop(lv, 0);
-    lispvalue* body = lispvalue_take(lv, 0);
+    lispvalue* body = lispvalue_pop(lv, 0);
+
+    lispvalue_delete(lv);
 
     return lispvalue_lambda(formals, body);
 }

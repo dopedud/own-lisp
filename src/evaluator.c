@@ -75,7 +75,7 @@ lispvalue* lispvalue_eval(lispenv* le, lispvalue* lv)
 lispvalue* lispvalue_eval_sexpression(lispenv* le, lispvalue* lv)
 {
     // evaluate children
-    for (int i = 0; i < lv->cell_count; i++) 
+    for (int i = 0; i < lv->cell_count; i++)
     lv->cells[i] = lispvalue_eval(le, lv->cells[i]);
     
     // error checking
