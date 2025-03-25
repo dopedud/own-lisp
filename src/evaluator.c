@@ -82,7 +82,7 @@ lispvalue* lispvalue_eval_sexpression(lispenv* le, lispvalue* lv)
     for (int i = 0; i < lv->cell_count; i++)
     if (lv->cells[i]->type == LISPVALUE_ERROR) return lispvalue_take(lv, i);
 
-    if (!lv->cell_count) return lv;
+    if (lv->cell_count == 0) return lv;
 
     if (lv->cell_count == 1) return lispvalue_take(lv, 0);
 
